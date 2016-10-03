@@ -4,11 +4,12 @@ var cheerio = require('cheerio');
 var FeedParser = require('feedparser');
 var Promise = require('bluebird');
 var fs = require('fs');
+var path = require('path');
 var FileCookieStore = require("tough-cookie-filestore");
 
 var config = require('./config.json');
 
-var cookieFile = "./cookies.json";
+var cookieFile = path.resolve(__dirname, "./cookies.json");
 
 // create the cookie store file if it does not exist
 fs.closeSync(fs.openSync(cookieFile, 'a'));
@@ -52,9 +53,13 @@ function queryReportIdsRss() {
         var feedparser = new FeedParser();
         req.on('error', console.error);
         req.on('response', function (res) {
-            var stream = this;
+            var stream = this, err;
 
-            if (res.statusCode != 200) return this.emit('error', new Error('Bad status code'));
+            if (res.statusCode != 200) {
+                err = new Error('Api returned a bad status code');
+                reject(err);
+                return this.emit('error', err);
+            }
 
             stream.pipe(feedparser);
         });
@@ -62,14 +67,12 @@ function queryReportIdsRss() {
         feedparser.on('error', console.error);
         feedparser.on('readable', function () {
             var stream = this, item;
-
             while (item = stream.read()) {
                 reportList.push({
                     id: threadIdMatcher.exec(item.link)[1],
                     createdAt: item.pubdate
                 });
             }
-
         });
 
         feedparser.on('end', function () {
