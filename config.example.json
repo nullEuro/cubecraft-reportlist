@@ -1,0 +1,15 @@
+{
+  "credentials": {
+    "username": "myUserName",
+    "password": "myPassword"
+  },
+  "net": {
+    "port": 8080,
+    "bind": "127.0.0.1"
+  },
+  "tls": {
+    "__doc__": "remove the tls section if you do not want https",
+    "keyFile": "key.pem",
+    "certFile": "cert.pem"
+  }
+}
