@@ -100,7 +100,9 @@ function queryReportIdsHtml() {
             return login().then(queryReportIdsHtml);
         } else {
             return $('a.PreviewTooltip').map(function (i, a) {
-                return parseInt(threadIdMatcher.exec($(a).attr('href'))[1], 10);
+                if (!$(a).closest('.discussionListItem').hasClass('locked')) {
+                    return parseInt(threadIdMatcher.exec($(a).attr('href'))[1], 10);
+                }
             }).get();
         }
     });
