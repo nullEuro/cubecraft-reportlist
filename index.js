@@ -89,7 +89,7 @@ function queryReportIdsRss() {
 function queryReportIdsHtml() {
     return request({
         url: "https://www.cubecraft.net/forums/report-a-player.24/",
-        qs: 'order=post_date&direction=asc',
+        qs: {order: 'post_date', direction: 'asc'},
         jar: jar,
         transform: function (body) {
             return cheerio.load(body);
