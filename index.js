@@ -87,25 +87,52 @@ function queryReportIdsRss() {
 }
 
 function queryReportIdsHtml() {
-    return request({
-        url: "https://www.cubecraft.net/forums/report-a-player.24/",
-        qs: {order: 'post_date', direction: 'asc'},
-        jar: jar,
-        transform: function (body) {
-            return cheerio.load(body);
-        }
-    }).then(function ($) {
+    function queryReports(page) {
+        return request({
+            url: "https://www.cubecraft.net/forums/report-a-player.24/page-" + page,
+            qs: {order: 'post_date', direction: 'asc'},
+            jar: jar,
+            transform: function (body) {
+                return cheerio.load(body);
+            }
+        });
+    }
+
+    function ensureLogin($) {
         if ($('html').hasClass('LoggedOut')) {
             console.log("not logged in, trying to log in...");
-            return login().then(queryReportIdsHtml);
+            return login().then(queryReports(1));
         } else {
-            return $('a.PreviewTooltip').map(function (i, a) {
-                if (!$(a).closest('.discussionListItem').hasClass('locked')) {
-                    return parseInt(threadIdMatcher.exec($(a).attr('href'))[1], 10);
-                }
-            }).get();
+            return Promise.resolve($);
         }
-    });
+    }
+
+    function extractReportIds($) {
+        return $('a.PreviewTooltip').map(function (i, a) {
+            if (!$(a).closest('.discussionListItem').hasClass('locked')) {
+                return parseInt(threadIdMatcher.exec($(a).attr('href'))[1], 10);
+            }
+        }).get();
+    }
+
+    return queryReports(1)
+        .then(ensureLogin)
+        .then(function ($) {
+            var pageNum = $('div.PageNav').data('last') || 1;
+            var pages = [extractReportIds($)];
+            for (var i = 2; i <= pageNum; ++i) {
+                pages.push(
+                    queryReports(i)
+                        .then(extractReportIds)
+                        .catch(function (err) {
+                            console.error("unable to retrieve page", err.stack);
+                            return [];
+                        })
+                );
+            }
+            return pages;
+        })
+        .spread(Array.prototype.concat.bind([]));
 }
 
 
@@ -116,8 +143,12 @@ queryReportIdsRss().then(function (reportList) {
 }).then(function (reportList) {
     reports = reportList;
     console.log(reports.join());
-}).catch(console.error);
+}).catch(logError);
 
+
+function logError(err) {
+    console.error(err.stack);
+}
 
 function redirectToNext(req, res) {
     var referer = req.headers.referer;
