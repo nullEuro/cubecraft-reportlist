@@ -132,7 +132,7 @@ function redirectToNext(req, res) {
                 }
             });
         }
-        if (!nextId) {
+        if (!nextId && reports.length > 0) {
             nextId = Math.min.apply(null, reports);
         }
         if (nextId) {
